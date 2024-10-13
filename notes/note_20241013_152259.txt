@@ -1,0 +1,4 @@
+Sample transcription of recorded audio.
+
+---
+**Computing Cost:** $1.1e-05
