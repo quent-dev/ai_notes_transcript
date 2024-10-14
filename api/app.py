@@ -4,6 +4,7 @@ import os
 from flask import Flask, request, jsonify, render_template
 from datetime import datetime
 from dotenv import load_dotenv
+import logging
 
 # Construct the path to the .env file
 dotenv_path = os.path.join(os.path.dirname(__file__), '..', '.env')
@@ -15,6 +16,9 @@ SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 app = Flask(__name__)
 
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 if ACTIVE_API == "OpenAI":
     import openai
     openai.api_key = os.getenv("OPENAI_API_KEY")
@@ -54,6 +58,7 @@ def index():
 def transcribe():
     transcription = request.form.get('transcription')
     if not transcription:
+        logger.error('No transcription provided.')
         return jsonify({'error': 'No transcription provided.'}), 400
     
     prompt = f"Create a concise note based on the following transcription:\n\n{transcription}"
@@ -76,6 +81,7 @@ def transcribe():
     }
     
     try:
+        logger.info("Sending transcription to AI21")
         response = requests.post(AI21_API_URL, headers=headers_ai21, json=payload)
         response.raise_for_status()
         data = response.json()
@@ -87,30 +93,36 @@ def transcribe():
         note_with_cost = f"{note}\n\n---\n**Computing Cost:** ${cost}"
         
         # Save the note_with_cost to Supabase
+        logger.info("Saving note to Supabase")
         insert_response = supabase.table('notes').insert({
             "content": note_with_cost
         }).execute()
 
         if insert_response.get('status_code') == 200:
+            logger.info("Note saved successfully in Supabase")
             return jsonify({
                 'note': note_with_cost,
                 'message': 'Note saved successfully in Supabase'
             })
         else:
+            logger.error("Failed to save note to Supabase")
             return jsonify({
                 'error': 'Failed to save note to Supabase',
                 'details': insert_response.get('data', 'No details available')
             }), 500
     
     except requests.exceptions.HTTPError as http_err:
+        logger.error(f"HTTP error occurred: {http_err} - {response.text}")
         return jsonify({'error': f"HTTP error occurred: {http_err} - {response.text}"}), 500
     except Exception as err:
+        logger.error(f"An error occurred: {err}")
         return jsonify({'error': f"An error occurred: {err}"}), 500
 
 @app.route('/save_note', methods=['POST'])
 def save_note():
     note = request.form.get('note')
     # Insert the note into the Supabase database
+    logger.info("Saving note to Supabase")
     data = supabase.table('notes').insert({"content": note}).execute()
     
     return "Note saved successfully!"
@@ -240,24 +252,24 @@ def generate_note(transcription):
     
 #     print(f"Note saved as {filename}")
 
-# def main():
-#     while True:
-#         # transcription = transcribe_audio()
-#         transcription = """
-#  When Jair Bolsonaro was the president, the narrative was Bolsonaro was a dictator, that he was a bad guy. 
-#  I know so many Brazilians from jiu jitsu. I know so many Brazilians, and they all love Bolsonaro. I was like, I am so confused about their politics over there. 
-#  I don't know what's going on, but Lulu was supposed to be this guy that was for the people. 
-#  And to hear that he is a part of this whole disinformation crackdown, alleged disinformation crackdown, is so disheartening.
-# """
-#         if transcription:
-#             print("Transcription:", transcription)
-#             note = generate_note(transcription)
-#             print("Generated Note:", note)
-#             save_note(note)
+def main():
+    while True:
+        # transcription = transcribe_audio()
+        transcription = """
+ When Jair Bolsonaro was the president, the narrative was Bolsonaro was a dictator, that he was a bad guy. 
+ I know so many Brazilians from jiu jitsu. I know so many Brazilians, and they all love Bolsonaro. I was like, I am so confused about their politics over there. 
+ I don't know what's going on, but Lulu was supposed to be this guy that was for the people. 
+ And to hear that he is a part of this whole disinformation crackdown, alleged disinformation crackdown, is so disheartening.
+"""
+        if transcription:
+            print("Transcription:", transcription)
+            note = generate_note(transcription)
+            print("Generated Note:", note)
+            # save_note(note)
         
-#         choice = input("Press Enter to create another note or 'q' to quit: ")
-#         if choice.lower() == 'q':
-#             break
+        choice = input("Press Enter to create another note or 'q' to quit: ")
+        if choice.lower() == 'q':
+            break
 
 if __name__ == "__main__":
     app.run(debug=True)

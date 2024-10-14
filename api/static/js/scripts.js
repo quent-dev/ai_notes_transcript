@@ -5,10 +5,12 @@ let recognition;
 
 document.getElementById('recordBtn').addEventListener('click', function() {
     if(recognizing){
+        console.log("Stopping recognition");
         recognition.stop();
         return;
     }
     
+    console.log("Initializing recognition");
     this.disabled = true;
     this.textContent = 'Initializing...';
     document.getElementById('status').textContent = 'Initializing...';
@@ -19,13 +21,16 @@ document.getElementById('recordBtn').addEventListener('click', function() {
     recognition.maxAlternatives = 1;
 
     recognition.onstart = () => {
+        console.log("Starting recognition");
         recognizing = true;
         this.textContent = 'Stop Recording';
         document.getElementById('status').textContent = 'Recording... Speak now.';
     };
 
     recognition.onresult = (event) => {
+        console.log("Recognition result received");
         const transcript = event.results[0][0].transcript;
+        console.log("Transcript:", transcript);
         document.getElementById('transcription').value = transcript;
         generateNote(transcript);
     };
@@ -42,9 +47,11 @@ document.getElementById('recordBtn').addEventListener('click', function() {
         this.disabled = false;
         this.textContent = 'Start Recording';
         document.getElementById('status').textContent = 'Recording stopped.';
+        console.log("Recognition ended");
     };
 
     recognition.start();
+    console.log("Recognition started, waiting for results...");
 });
       
 function generateNote(transcription) {
