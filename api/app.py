@@ -4,8 +4,11 @@ from flask import Flask, request, jsonify, render_template
 from datetime import datetime
 from dotenv import load_dotenv
 
+# Construct the path to the .env file
+dotenv_path = os.path.join(os.path.dirname(__file__), '..', '.env')
+
 # Load additional libraries based on API
-load_dotenv()
+load_dotenv(dotenv_path, override=True)
 ACTIVE_API = os.getenv("ACTIVE_API")
 
 app = Flask(__name__)
