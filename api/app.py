@@ -98,18 +98,19 @@ def transcribe():
             "content": note_with_cost
         }).execute()
 
-        if insert_response.get('status_code') == 200:
-            logger.info("Note saved successfully in Supabase")
+        # Check if the note was saved successfully
+        if insert_response.get('error'):
+            logger.error(f"Failed to save note to Supabase: {insert_response['error']}")
             return jsonify({
-                'note': note_with_cost,
-                'message': 'Note saved successfully in Supabase'
-            })
-        else:
-            logger.error("Failed to save note to Supabase")
-            return jsonify({
-                'error': 'Failed to save note to Supabase',
-                'details': insert_response.get('data', 'No details available')
+                'error': "Failed to save note to Supabase",
+                'details': insert_response['error']
             }), 500
+        
+        logger.info("Note saved successfully in Supabase")
+        return jsonify({
+            'note': note_with_cost,
+            'message': 'Note saved successfully in Supabase'
+        })
     
     except requests.exceptions.HTTPError as http_err:
         logger.error(f"HTTP error occurred: {http_err} - {response.text}")

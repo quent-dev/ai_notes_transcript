@@ -21,3 +21,21 @@ The app currently supports the following languages for transcription:
 - English
 - Spanish
 - French
+
+## Supabase
+
+The app uses Supabase for database storage. The database schema is as follows:
+
+- `notes`: This table stores the notes with the following columns:
+  - `id`: The unique identifier for the note.
+  - `content`: The content of the note.
+  - `created_at`: The timestamp when the note was created.
+
+## To do
+
+- Add a column to the `notes` table to store the transcription cost.
+- Add option to export notes to a file.
+- Work on the UI
+- Review the recording process to make it more user-friendly
+
+
