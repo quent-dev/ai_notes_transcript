@@ -3,3 +3,4 @@ Procfile
 notes/
 venv/
 requirements_local.txt
+.vercel
