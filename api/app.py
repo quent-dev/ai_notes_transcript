@@ -38,10 +38,6 @@ elif ACTIVE_API == "AI21":
         "Content-Type": "application/json",
         "Authorization": f"Bearer {AI21_API_KEY}"
     }
-elif ACTIVE_API == "Cohere":
-    import cohere
-    COHERE_API_KEY = os.getenv("COHERE_API_KEY")
-    co = cohere.Client(COHERE_API_KEY)
 else:
     raise ValueError("Invalid ACTIVE_API specified in .env")
 
@@ -205,17 +201,6 @@ def generate_note(transcription):
         except Exception as err:
             print(f"An error occurred: {err}")
             return "Error generating note due to an unexpected error."
-    
-    elif ACTIVE_API == "Cohere":
-        response = co.generate(
-            model='command-xlarge-nightly',
-            prompt=prompt,
-            max_tokens=200,
-            temperature=0.7,
-            stop_sequences=["\n"]
-        )
-        note = response.generations[0].text.strip()
-    
     else:
         note = "Error: No valid API selected."
     
