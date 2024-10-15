@@ -69,6 +69,7 @@ function generateNote(transcription) {
             document.getElementById('status').textContent = data.error;
         } else {
             document.getElementById('note').value = data.note;
+            document.getElementById('cost').textContent = data.cost;
             document.getElementById('status').textContent = 'Note generated successfully.';
         }
     })

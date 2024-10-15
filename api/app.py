@@ -125,6 +125,13 @@ def save_note():
     
     return "Note saved successfully!"
 
+@app.route('/notes')
+def view_notes():
+    # Fetch all notes from the Supabase database
+    all_notes = supabase.table('notes').select('*').execute()
+    print(all_notes.data)
+    return render_template('notes.html', notes=all_notes.data)
+
 def transcribe_audio():
     recognizer = sr.Recognizer()
     with sr.Microphone() as source:

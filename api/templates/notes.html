@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Past Notes</title>
+    <!-- Bootstrap CSS -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <div class="container mt-5">
+        <h1>Past Notes</h1>
+        <!-- Back Button -->
+        <div class="mb-4">
+            <a href="{{ url_for('index') }}" class="btn btn-secondary">Back</a>
+        </div>
+        
+    {% if notes %}
+        <div class="list-group">
+            {% for note in notes %}
+                <div class="list-group-item list-group-item-action mb-3">
+                    <h5 class="mb-1">Note#{{ note.id }} - {{ note.created_at }}</h5>
+                    <p class="mb-0">{{ note.content }}</p>
+                    <p class="mb-0">Cost: ${{ "%.2f"|format(note.cost) }}</p>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="alert alert-warning" role="alert">
+            No notes found.
+        </div>
+    {% endif %}
+    </div>
+    <!-- Bootstrap JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/scripts.js') }}"></script>
+</body>
+</html>

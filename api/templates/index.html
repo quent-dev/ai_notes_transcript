@@ -36,6 +36,15 @@
             <h4>Generated Note:</h4>
             <textarea id="note" class="form-control" readonly></textarea>
         </div>
+        <div class="mb-3"></div>
+            <h4>Cost:</h4>
+            <span id="cost" class="" readonly></span>
+        </div>
+
+        <!-- New Button: View Past Notes -->
+        <div class="d-flex justify-content-center mt-4">
+            <a href="{{ url_for('view_notes') }}" class="btn btn-secondary">View Past Notes</a>
+    </div>
     </div>
     
     <!-- Bootstrap JS Bundle -->
