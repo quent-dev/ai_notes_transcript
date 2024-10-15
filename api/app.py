@@ -93,24 +93,21 @@ def transcribe():
         note_with_cost = f"{note}\n\n---\n**Computing Cost:** ${cost}"
         
         # Save the note_with_cost to Supabase
-        logger.info("Saving note to Supabase")
-        insert_response = supabase.table('notes').insert({
-            "content": note_with_cost
-        }).execute()
-
-        # Check if the note was saved successfully
-        if insert_response.error:
-            logger.error(f"Failed to save note to Supabase: {insert_response['error']}")
+        try:
+            logger.info("Saving note to Supabase")
+            insert_response = supabase.table('notes').insert({
+            "content": note,
+            "cost": cost
+            }).execute()
+            logger.info("Note saved successfully in Supabase")
             return jsonify({
-                'error': "Failed to save note to Supabase",
-                'details': insert_response.error.message
-            }), 500
-        
-        logger.info("Note saved successfully in Supabase")
-        return jsonify({
-            'note': note_with_cost,
-            'message': 'Note saved successfully in Supabase'
-        })
+                'note': note,
+                'cost': cost,
+                'message': 'Note saved successfully in Supabase'
+            })
+        except Exception as err:
+            logger.error(f"An error occurred: {err}")
+            return jsonify({'error': f"An error occurred: {err}"}), 500 
     
     except requests.exceptions.HTTPError as http_err:
         logger.error(f"HTTP error occurred: {http_err} - {response.text}")

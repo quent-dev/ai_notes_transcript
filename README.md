@@ -10,8 +10,9 @@ AI21_API_KEY=<your-key>
 OPENAI_API_KEY=<your-key>
 ```
 
-## AI21 API Documentation
+## API Documentation
 https://docs.ai21.com/reference/jamba-15-api-ref
+https://supabase.com/docs/reference/python/insert
 
 
 ## Supported Languages
