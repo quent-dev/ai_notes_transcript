@@ -99,7 +99,7 @@ def transcribe():
         }).execute()
 
         # Check if the note was saved successfully
-        if insert_response.get('error'):
+        if insert_response['error']:
             logger.error(f"Failed to save note to Supabase: {insert_response['error']}")
             return jsonify({
                 'error': "Failed to save note to Supabase",
