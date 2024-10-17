@@ -1,20 +1,26 @@
 import speech_recognition as sr
 from supabase import create_client
 import os
-from flask import Flask, request, jsonify, render_template
-from datetime import datetime
+from flask import Flask, request, jsonify, render_template, redirect, url_for, session
+from authlib.integrations.flask_client import OAuth
+from datetime import datetime, timedelta
 from dotenv import load_dotenv
 import logging
 
-# Construct the path to the .env file
+# Load environment variables
 dotenv_path = os.path.join(os.path.dirname(__file__), '..', '.env')
-
-# Load additional libraries based on API
 load_dotenv(dotenv_path, override=True)
+
+# Configuration
 ACTIVE_API = os.getenv("ACTIVE_API")
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+AI21_API_URL = "https://api.ai21.com/studio/v1/chat/completions"
+AI21_API_KEY = os.getenv("AI21_API_KEY")
+
+# Initialize Flask app
 app = Flask(__name__)
+app.secret_key = os.urandom(24)
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -50,12 +56,64 @@ else:
 # Initialize the Supabase client
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
+# Configure OAuth
+oauth = OAuth(app)
+google = oauth.register(
+    name='google',
+    client_id=os.getenv("GOOGLE_CLIENT_ID"),
+    client_secret=os.getenv("GOOGLE_CLIENT_SECRET"),
+    server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
+    client_kwargs={'scope': 'openid email profile'},
+)
+
 @app.route('/')
 def index():
-    return render_template('index.html')
+    logger.info(f"Session: {session}")
+    if 'user_email' in session:
+        return render_template('index.html', user_email=session['user_email'])
+    return render_template('login.html')
+
+@app.route('/login')
+def login():
+    redirect_uri = url_for('authorized', _external=True)
+    return google.authorize_redirect(redirect_uri)
+
+@app.route('/logout')
+def logout():
+    session.pop('google_token', None)
+    session.pop('user_email', None)
+    return redirect(url_for('index'))
+
+@app.route('/login/authorized')
+def authorized():
+    try:
+        token = google.authorize_access_token()
+        resp = google.get('https://www.googleapis.com/oauth2/v3/userinfo')
+        user_info = resp.json()
+        user_email = user_info['email']
+        
+        # Check if user exists in the database, if not, create a new user
+        user = supabase.table('users').select('*').eq('email', user_email).execute()
+        
+        if not user.data:
+            supabase.table('users').insert({
+                'email': user_email,
+                'name': user_info['name']
+            }).execute()
+        
+        session['user_email'] = user_email
+        session['google_token'] = token  # Store the token in the session
+        
+        return redirect(url_for('index'))
+    except Exception as e:
+        logger.error(f"Error in authorized route: {str(e)}", exc_info=True)
+        return redirect(url_for('index'))
 
 @app.route('/transcribe', methods=['POST'])
 def transcribe():
+    if 'user_email' not in session:
+        return jsonify({'error': 'Unauthorized'}), 401
+    
     transcription = request.form.get('transcription')
     if not transcription:
         logger.error('No transcription provided.')
@@ -97,7 +155,8 @@ def transcribe():
             logger.info("Saving note to Supabase")
             insert_response = supabase.table('notes').insert({
             "content": note,
-            "cost": cost
+            "cost": cost,
+            "user_email": session['user_email']
             }).execute()
             logger.info("Note saved successfully in Supabase")
             return jsonify({
@@ -127,10 +186,36 @@ def save_note():
 
 @app.route('/notes')
 def view_notes():
-    # Fetch all notes from the Supabase database
-    all_notes = supabase.table('notes').select('*').execute()
-    print(all_notes.data)
-    return render_template('notes.html', notes=all_notes.data)
+    if 'user_email' not in session:
+        return redirect(url_for('login'))
+    
+    # Get filter parameters from the request
+    id_number = request.args.get('id')
+    date = request.args.get('date')
+    min_cost = request.args.get('min_cost')
+    max_cost = request.args.get('max_cost')
+
+    # Start with a base query
+    query = supabase.table('notes').select('*')
+
+    # Apply filters if they are provided
+    if id_number:
+        query = query.eq('id', int(id_number))
+    if date:
+        query = query.eq('created_at::date', date)
+    if min_cost:
+        query = query.gte('cost', float(min_cost))
+    if max_cost:
+        query = query.lte('cost', float(max_cost))
+    
+    # Always filter by user_email
+    query = query.eq('user_email', session['user_email'])
+
+    # Execute the query
+    result = query.execute()
+
+    # Render the template with the filtered notes
+    return render_template('notes.html', notes=result.data)
 
 def transcribe_audio():
     recognizer = sr.Recognizer()
@@ -245,27 +330,9 @@ def generate_note(transcription):
     
     return note
 
-# def save_note(note):
-#     if not os.path.exists('notes'):
-#         os.makedirs('notes')
-    
-#     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-#     filename = f"notes/note_{timestamp}.txt"
-    
-#     with open(filename, 'w') as file:
-#         file.write(note)
-    
-#     print(f"Note saved as {filename}")
-
 def main():
     while True:
-        # transcription = transcribe_audio()
-        transcription = """
- When Jair Bolsonaro was the president, the narrative was Bolsonaro was a dictator, that he was a bad guy. 
- I know so many Brazilians from jiu jitsu. I know so many Brazilians, and they all love Bolsonaro. I was like, I am so confused about their politics over there. 
- I don't know what's going on, but Lulu was supposed to be this guy that was for the people. 
- And to hear that he is a part of this whole disinformation crackdown, alleged disinformation crackdown, is so disheartening.
-"""
+        transcription = transcribe_audio()
         if transcription:
             print("Transcription:", transcription)
             note = generate_note(transcription)

@@ -15,22 +15,70 @@
             <a href="{{ url_for('index') }}" class="btn btn-secondary">Back</a>
         </div>
         
-    {% if notes %}
-        <div class="list-group">
-            {% for note in notes %}
-                <div class="list-group-item list-group-item-action mb-3">
-                    <h5 class="mb-1">Note#{{ note.id }} - {{ note.created_at }}</h5>
-                    <p class="mb-0">{{ note.content }}</p>
-                    <p class="mb-0">Cost: ${{ "%.2f"|format(note.cost) }}</p>
-                </div>
-            {% endfor %}
+        <!-- Filter Form -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <form method="GET" action="{{ url_for('view_notes') }}">
+                    <div class="row g-3 align-items-end">
+                        <!-- ID Number Filter -->
+                        <div class="col-md-3">
+                            <label for="id_number" class="form-label">ID Number</label>
+                            <input type="number" class="form-control" id="id_number" name="id" placeholder="Enter ID Number" value="{{ request.args.get('id', '') }}">
+                        </div>
+                        <!-- Date Filter -->
+                        <div class="col-md-3">
+                            <label for="date" class="form-label">Date</label>
+                            <input type="date" class="form-control" id="date" name="date" value="{{ request.args.get('date', '') }}">
+                        </div>
+                        <!-- Cost Filter -->
+                        <div class="col-md-4">
+                            <label class="form-label">Cost Range ($)</label>
+                            <div class="input-group">
+                                <input type="number" step="0.01" class="form-control" name="min_cost" placeholder="Min" value="{{ request.args.get('min_cost', '') }}">
+                                <input type="number" step="0.01" class="form-control" name="max_cost" placeholder="Max" value="{{ request.args.get('max_cost', '') }}">
+                            </div>
+                        </div>
+                        <!-- Filter Buttons -->
+                        <div class="col-md-2">
+                            <button type="submit" class="btn btn-primary w-100 mb-2">Filter</button>
+                            <a href="{{ url_for('view_notes') }}" class="btn btn-outline-secondary w-100">Reset</a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>  
+        <!-- End of Filter Form -->
+
+        <!-- Notes Table -->
+        {% if notes %}
+            <table class="table table-striped table-hover">
+            <thead class="table-dark">
+                <tr>
+                    <th scope="col">#</th>
+                    <th scope="col">Created At</th>
+                    <th scope="col">Content</th>
+                    <th scope="col">Cost ($)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for note in notes %}
+                    <tr>
+                        <th scope="row">{{ note.id }}</th>
+                        <td>{{ note.created_at }}</td>
+                        <td>{{ note.content }}</td>
+                        <td>{{ "%.2f"|format(note.cost) }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+            </table>
+        {% else %}
+            <div class="alert alert-warning" role="alert">
+                No notes found.
         </div>
-    {% else %}
-        <div class="alert alert-warning" role="alert">
-            No notes found.
-        </div>
-    {% endif %}
-    </div>
+        {% endif %}
+    </div>  
+    <!-- End of Notes Table -->
+
     <!-- Bootstrap JS Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="{{ url_for('static', filename='js/scripts.js') }}"></script>
