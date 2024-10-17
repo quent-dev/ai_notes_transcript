@@ -6,6 +6,7 @@ from authlib.integrations.flask_client import OAuth
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
 import logging
+from functools import wraps
 
 # Load environment variables
 dotenv_path = os.path.join(os.path.dirname(__file__), '..', '.env')
@@ -66,6 +67,18 @@ google = oauth.register(
     client_kwargs={'scope': 'openid email profile'},
 )
 
+# Add these near the top of your file, with other app configurations
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=2)  # Set session timeout to 2 hours
+app.config['SESSION_REFRESH_EACH_REQUEST'] = True
+
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not check_and_update_session():
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
 @app.route('/')
 def index():
     logger.info(f"Session: {session}")
@@ -80,8 +93,7 @@ def login():
 
 @app.route('/logout')
 def logout():
-    session.pop('google_token', None)
-    session.pop('user_email', None)
+    session.clear()
     return redirect(url_for('index'))
 
 @app.route('/login/authorized')
@@ -92,7 +104,6 @@ def authorized():
         user_info = resp.json()
         user_email = user_info['email']
         
-        # Check if user exists in the database, if not, create a new user
         user = supabase.table('users').select('*').eq('email', user_email).execute()
         
         if not user.data:
@@ -101,8 +112,10 @@ def authorized():
                 'name': user_info['name']
             }).execute()
         
+        session.permanent = True  # Make the session permanent
         session['user_email'] = user_email
-        session['google_token'] = token  # Store the token in the session
+        session['google_token'] = token
+        session['last_activity'] = datetime.utcnow().isoformat()  # Add timestamp
         
         return redirect(url_for('index'))
     except Exception as e:
@@ -110,6 +123,7 @@ def authorized():
         return redirect(url_for('index'))
 
 @app.route('/transcribe', methods=['POST'])
+@login_required
 def transcribe():
     if 'user_email' not in session:
         return jsonify({'error': 'Unauthorized'}), 401
@@ -185,6 +199,7 @@ def save_note():
     return "Note saved successfully!"
 
 @app.route('/notes')
+@login_required
 def view_notes():
     if 'user_email' not in session:
         return redirect(url_for('login'))
@@ -329,6 +344,19 @@ def generate_note(transcription):
         note = "Error: No valid API selected."
     
     return note
+
+def check_and_update_session():
+    if 'user_email' in session and 'last_activity' in session:
+        last_activity = datetime.fromisoformat(session['last_activity'])
+        if datetime.utcnow() - last_activity > app.config['PERMANENT_SESSION_LIFETIME']:
+            # Session has expired
+            session.clear()
+            return False
+        else:
+            # Update last activity
+            session['last_activity'] = datetime.utcnow().isoformat()
+            return True
+    return False
 
 def main():
     while True:
