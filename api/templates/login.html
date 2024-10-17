@@ -1,10 +1,47 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Login</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Note Taker - Login</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body, html {
+            height: 100%;
+        }
+        .bg-custom-left {
+            background-color: #FFFFFF;
+        }
+        .bg-custom-right {
+            background-color: #F8F2F0; /* Cream color */
+        }
+        .btn-custom {
+            background-color: #FF7F50;
+            border-color: #FF7F50;
+        }
+        .btn-custom:hover {
+            background-color: #FF6347;
+            border-color: #FF6347;
+        }
+    </style>
 </head>
 <body>
-    <h1>Welcome to Note Taker</h1>
-    <a href="{{ url_for('login') }}">Login with Google</a>
+    <div class="container-fluid h-100">
+        <div class="row h-100">
+            <div class="col-md-6 bg-custom-left d-flex align-items-center justify-content-center">
+                <div class="text-center">
+                    <h1 class="mb-4">AI Note Taker</h1>
+                    <p class="mb-5">Welcome! Please sign in to continue.</p>
+                    <a href="{{ url_for('login') }}" class="btn btn-custom btn-lg text-white">
+                        <img src="https://www.google.com/favicon.ico" alt="Google" width="20" height="20" class="me-2">
+                        Sign in with Google
+                    </a>
+                </div>
+            </div>
+            <div class="col-md-6 bg-custom-right d-none d-md-block">
+                <!-- This column is now empty with a cream background -->
+            </div>
+        </div>
+    </div>
 </body>
 </html>
