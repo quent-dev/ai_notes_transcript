@@ -4,3 +4,4 @@ notes/
 venv/
 requirements_local.txt
 .vercel
+vercel_1.json
